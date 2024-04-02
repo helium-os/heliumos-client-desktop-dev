@@ -40,40 +40,6 @@ const getOrigin = () => {
     return `http://127.0.0.1:${rendererPort}`;
 };
 
-//存入数据
-const setDataSourse = (data, filePath = './data.json', en = true) => {
-    if (!fs.existsSync(filePath)) {
-        writeFileByUser(filePath);
-    }
-    fs.writeFileSync(filePath, data, {
-        encoding: 'utf-8',
-    });
-};
-//
-function writeFileByUser(filePath) {
-    mkdir(filePath);
-    fs.appendFile(filePath, '', 'utf8', function (err) {
-        if (err) {
-            console.log(err);
-        } else {
-            console.log('appendFile');
-        }
-    });
-}
-
-function mkdir(filePath) {
-    const arr = filePath.split('/');
-    let dir = arr[0];
-    for (let i = 1; i < arr.length; i++) {
-        if (!dirCache[dir] && !fs.existsSync(dir)) {
-            dirCache[dir] = true;
-            fs.mkdirSync(dir);
-        }
-        dir = dir + '/' + arr[i];
-    }
-    fs.writeFileSync(filePath, '');
-}
-
 //自动更新
 const AutoUpdater = (autoUpdater) => {
     // 创建 update-not-available 事件的回调函数
@@ -122,8 +88,8 @@ function AutoUpdaterInterval(autoUpdater, hour = 6, updateNow = true) {
             updateDownloaded = true;
             dialog
                 .showMessageBox({
-                    title: '更新 Helium OS',
-                    message: '发现新版本，重新启动 Helium OS 即可更新完成。',
+                    title: '更新 HeliumOS',
+                    message: '发现新版本，重新启动 HeliumOS 即可更新完成。',
                     buttons: ['重新启动以更新', '取消'],
                 })
                 .then((res) => {
@@ -337,7 +303,6 @@ const loadInstallModePage = (win, options = {}) => {
 module.exports = {
     startUpPackagedRenderer,
     getOrigin,
-    setDataSourse,
     AutoUpdater,
     AutoUpdaterInterval,
     macShortcutKeyFailure,

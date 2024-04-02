@@ -30,7 +30,7 @@ jobs:
         run: |
           npm install npm@8.15.0 -g
           npm install --registry=https://registry.npmjs.org/
-          node getVersion.js
+          npm run version
           export VERSION=$(cat version)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
         shell: bash
@@ -46,14 +46,15 @@ jobs:
           npm run build
           
           if [ "$RUNNER_OS" == "Windows" ]; then
-          sh build.sh
-
+            npm run dist
           fi
+          
           if [ "$RUNNER_OS" == "Linux" ]; then
-          sh build-linux.sh
+            npm run dist-linux
           fi
+          
           if [ "$RUNNER_OS" == "macOS" ]; then
-          sh build-mac.sh
+            npm run dist-mac
           fi
         shell: bash
 

@@ -209,41 +209,70 @@ async function runServer() {
             ecdh.generateKeys();
             const publicKey = ecdh.getPublicKey('hex', 'uncompressed');
             const handshakeData = {"data": publicKey};
-
-            serverSocket.on("data", function (data) {
-                if (data.toString() == "OK") {
-                    let encryptStream = crypto.createCipheriv(algorithm, secretKey, buf);
-                    let decryptStream = crypto.createDecipheriv(algorithm, secretKey, buf);
-                    serverSocket.pipe(decryptStream).pipe(clientSocket, {end: false});
-                    clientSocket.pipe(encryptStream).pipe(serverSocket, {end: false});
-                } else if (data.toString().indexOf("{\"data\":") >= 0) {
-                    const publicKeyJson = JSON.parse(data.toString());
-                    let sec = ecdh.computeSecret(publicKeyJson.data, "hex");
-                    const hash = crypto.createHash('sha256');
-                    hash.update(sec);
-                    const secHash = hash.digest('hex');
-                    secretKey = Buffer.from(secHash, "hex").subarray(0, 32);
-                    logger.debug(`secret key string: ${Buffer.from(secHash, "hex").subarray(0, 32).toString("hex")}`);
-                    let helloInfo = {"port": ":443", "host": orginalHost, "type": ""};
-                    if (org === "custom")
-                    {
-                        helloInfo.type = "ping";
+            if (req.url.indexOf(config.dns_server) >= 0 || req.url.indexOf(config.alias_server) >= 0) {
+                serverSocket.on("data", function (data) {
+                    if (data.toString() == "OK") {
+                        let encryptStream = crypto.createCipheriv(algorithm, secretKey, buf);
+                        let decryptStream = crypto.createDecipheriv(algorithm, secretKey, buf);
+                        serverSocket.pipe(decryptStream).pipe(clientSocket, {end: false});
+                        clientSocket.pipe(encryptStream).pipe(serverSocket, {end: false});
+                    } else if (data.toString().indexOf("{\"data\":") >= 0) {
+                        const publicKeyJson = JSON.parse(data.toString());
+                        let sec = ecdh.computeSecret(publicKeyJson.data, "hex");
+                        const hash = crypto.createHash('sha256');
+                        hash.update(sec);
+                        const secHash = hash.digest('hex');
+                        secretKey = Buffer.from(secHash, "hex").subarray(0, 32);
+                        logger.debug(`v0 secret key string: ${Buffer.from(secHash, "hex").subarray(0, 32).toString("hex")}`);
+                        let helloInfo = {"port": ":443", "host": orginalHost, "type": ""};
+                        if (org === "custom")
+                        {
+                            helloInfo.type = "ping";
+                        }
+                        serverSocket.write(JSON.stringify(helloInfo));
+                    } else if (data.toString().indexOf("{\"org_id\":") >= 0) {
+                        const orgJson = JSON.parse(data.toString());
+                        dnsMap.clear();
+                        dnsMap.set(orgJson.org_id, env.substring(7));
                     }
+                });
+                serverSocket.on('connect', () => {
+                    clientSocket.write([
+                        'HTTP/1.1 200 Connection Established',
+                        'Proxy-agent: Node-heliumos-proxy',
+                    ].join('\r\n'))
+                    clientSocket.write('\r\n\r\n');
+                    serverSocket.write(JSON.stringify(handshakeData));
+                })
+            } else {
+                serverSocket.on("data", function (data) {
+                    if (data.toString() == "OK") {
+                        serverSocket.write(JSON.stringify(handshakeData));
+                    } else if (data.toString().indexOf("{\"data\":") >= 0) {
+                        const publicKeyJson = JSON.parse(data.toString());
+                        let sec = ecdh.computeSecret(publicKeyJson.data, "hex");
+                        const hash = crypto.createHash('sha256');
+                        hash.update(sec);
+                        const secHash = hash.digest('hex');
+                        secretKey = Buffer.from(secHash, "hex").subarray(0, 32);
+                        logger.debug(`v1 secret key string: ${Buffer.from(secHash, "hex").subarray(0, 32).toString("hex")}`);
+
+                        let encryptStream = crypto.createCipheriv(algorithm, secretKey, buf);
+                        let decryptStream = crypto.createDecipheriv(algorithm, secretKey, buf);
+                        serverSocket.pipe(decryptStream).pipe(clientSocket, {end: false});
+                        clientSocket.pipe(encryptStream).pipe(serverSocket, {end: false});
+                    }
+                });
+                serverSocket.on('connect', () => {
+                    clientSocket.write([
+                        'HTTP/1.1 200 Connection Established',
+                        'Proxy-agent: Node-heliumos-proxy',
+                    ].join('\r\n'))
+                    clientSocket.write('\r\n\r\n');
+                    let helloInfo = {"port": "443", "host": orginalHost, "type": "HTTP", "version":"v1", "from": "client"};
                     serverSocket.write(JSON.stringify(helloInfo));
-                } else if (data.toString().indexOf("{\"org_id\":") >= 0) {
-                    const orgJson = JSON.parse(data.toString());
-                    dnsMap.clear();
-                    dnsMap.set(orgJson.org_id, env.substring(7));
-                }
-            });
-            serverSocket.on('connect', () => {
-                clientSocket.write([
-                    'HTTP/1.1 200 Connection Established',
-                    'Proxy-agent: Node-heliumos-proxy',
-                ].join('\r\n'))
-                clientSocket.write('\r\n\r\n');
-                serverSocket.write(JSON.stringify(handshakeData));
-            })
+                })
+            }
         } else {
             serverSocket.on('connect', () => {
                 clientSocket.write([
@@ -287,7 +316,7 @@ async function updateAliasDb() {
             aliasArray.push([org, org]);
         }
     } else {
-        const url = config.alias_server + org + "/v1/pubcc/organizations"
+        const url = "https://"+config.alias_server + org + "/v1/pubcc/organizations"
         const aliasData = await tools.proxyRequest(url, "get", null, null, "http://127.0.0.1:"+port, __dirname + "/../" +config.cert_file);
 
         try {

@@ -4,4 +4,4 @@ prod_dns: https://dns.heliumos-dns.info
 testinner_dns: https://dns-testinner.heliumos-dns.info
 demo_dns: https://dns-demo.heliumos-dns.info
 dns_server: dns.system.service.
-alias_server: https://transaction-agent.system.service.
+alias_server: transaction-agent.system.service.

@@ -1,6 +1,6 @@
 {
     "name": "HeliumOS",
-    "version": "1.2.12-beta.7",
+    "version": "1.2.12-beta.8",
     "main": "electron-src/main.js",
     "description": "HeliumOS client desktop",
     "author": "HeliumOS",
@@ -11,12 +11,13 @@
         "lint:fix": "next lint --fix",
         "electron-start": "cross-env NODE_ENV=testinner electron . --icon=favicon.ico ",
         "electron-start-all": "concurrently \"npm run dev\" \"wait-on http://localhost:3001 && npm run electron-start\"",
+        "postinstall": "electron-builder install-app-deps",
         "dist": "cross-env  electron-builder --win --x64",
         "dist-mac": "electron-builder --macos --arm64 --x64",
         "dist-linux": "electron-builder  --linux  --x64",
-        "build:dist": "npm run build && npm run dist",
-        "build:dist-mac": "npm run build && npm run dist-mac",
-        "build:dist-linux": "npm run build && npm run dist-linux",
+        "build:dist": "npm run postinstall && npm run build && npm run dist",
+        "build:dist-mac": "npm run postinstall && npm run build && npm run dist-mac",
+        "build:dist-linux": "npm run postinstall && npm run build && npm run dist-linux",
         "release": "electron-builder --win --config --publish always"
     },
     "dependencies": {
@@ -47,7 +48,7 @@
         "react-redux": "^9.1.0",
         "request": "^2.88.2",
         "sqlite": "^5.0.1",
-        "sqlite3": "^5.1.6"
+        "sqlite3": "5.1.6"
     },
     "devDependencies": {
         "@electron/notarize": "^2.3.0",

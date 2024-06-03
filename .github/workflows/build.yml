@@ -52,7 +52,9 @@ jobs:
         run: npm ci
 
       - name: Build Project
-        run: npm run build
+        run: |
+          npm run postinstall
+          npm run build
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
